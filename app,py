@@ -1,0 +1,74 @@
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Welcome to AAHIR Chatbot API!"  
+
+@app.route('/weather', methods=['GET'])
+def get_weather():
+    city = request.args.get('city', '').lower()
+    weather_graphics = {
+        "sunny": "☀️",
+        "rainy": "🌧️",
+        "cloudy": "☁️",
+        "stormy": "⛈️",
+        "snowy": "❄️"
+    }
+    sample_weather = {"new york": "sunny", "london": "rainy", "tokyo": "cloudy"}
+    
+    if city in sample_weather:
+        condition = sample_weather[city]
+        return jsonify({"city": city.capitalize(), "condition": condition, "graphic": weather_graphics.get(condition, "🌍")})
+    else:
+        return jsonify({"error": "City data not available!"}), 404
+
+@app.route('/time', methods=['GET'])
+def get_time():
+    from datetime import datetime, timedelta
+    ist_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    clock_art = f"🕒 {ist_time.strftime('%H:%M:%S')}"
+    return jsonify({"IST Time": clock_art})
+
+@app.route('/convert', methods=['GET'])
+def convert_units():
+    value = request.args.get('value')
+    from_unit = request.args.get('from')
+    to_unit = request.args.get('to')
+    
+    conversions = {
+        "kg": {"lb": 2.20462},
+        "lb": {"kg": 0.453592},
+        "cm": {"inch": 0.393701},
+        "inch": {"cm": 2.54},
+        "c": {"f": lambda x: (x * 9/5) + 32},
+        "f": {"c": lambda x: (x - 32) * 5/9},
+    }
+    
+    if not value or not from_unit or not to_unit:
+        return jsonify({"error": "Provide value, from unit, and to unit!"}), 400
+    
+    try:
+        value = float(value)
+        if from_unit in conversions and to_unit in conversions[from_unit]:
+            conversion_factor = conversions[from_unit][to_unit]
+            result = conversion_factor(value) if callable(conversion_factor) else value * conversion_factor
+            return jsonify({"conversion": f"{value} {from_unit} = {result:.2f} {to_unit}"})
+        else:
+            return jsonify({"error": "Invalid conversion units!"}), 400
+    except Exception:
+        return jsonify({"error": "Invalid input!"}), 400
+
+@app.route('/capital', methods=['GET'])
+def get_capital():
+    country = request.args.get('country', '').lower()
+    sample_capitals = {"usa": "Washington D.C.", "uk": "London", "japan": "Tokyo"}
+    
+    if country in sample_capitals:
+        return jsonify({"country": country.capitalize(), "capital": sample_capitals[country]})
+    else:
+        return jsonify({"error": "Capital data not available!"}), 404
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
